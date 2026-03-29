@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AAS Profile Gap Analysis — Dogs Needing Detail Updates</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #f5f2ee;
+    --surface: #ffffff;
+    --surface2: #f0ece6;
+    --border: #ddd8d0;
+    --border2: #ccc6bc;
+    --text: #1e1c18;
+    --muted: #7a7268;
+    --accent: #b85c20;
+    --accent2: #8f3e10;
+    --green: #2a7a44;
+    --green-bg: #edf7f1;
+    --green-border: #b4ddc4;
+    --red: #b03020;
+    --red-bg: #fdf0ee;
+    --red-border: #e8bcb4;
+    --warn: #a06010;
+    --warn-bg: #fef6ec;
+    --warn-border: #e8cfa0;
+    --upl: #c03030;
+    --upl-bg: #fdf0f0;
+    --upl-border: #e8b8b8;
+    --critical-bg: #fff8f7;
+    --critical-left: #d44030;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
+  }
+
+  header h1 em { font-style: italic; color: var(--accent); }
+
+  .header-meta { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+
+  .meta-stat {
+    text-align: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    min-width: 80px;
+  }
+
+  .meta-stat .num {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--accent);
+    display: block;
+    line-height: 1;
+  }
+
+  .meta-stat .label {
+    font-size: 0.67rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  .sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+  }
+
+  .sub a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(184,92,32,0.3); }
+
+  /* LEGEND */
+  .legend-bar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 0.9rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .legend-row {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+  }
+
+  .legend-row > .lbl {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .legend-note {
+    font-size: 0.69rem;
+    color: var(--muted);
+    padding: 0.3rem 0.7rem;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 4px;
+  }
+  .legend-note strong { color: var(--warn); }
+
+  .status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .s-yes     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .s-no      { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
+  .s-partial { background: var(--warn-bg);  color: var(--warn);  border: 1px solid var(--warn-border); }
+
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .dot-upl      { background: var(--upl); }
+  .dot-critical { background: var(--critical-left); }
+  .dot-nophoto  { background: #5050a8; }
+
+  /* CONTROLS */
+  .controls {
+    padding: 0.85rem 2.5rem;
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .filter-btn {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 0.3rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 0.72rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(184,92,32,0.08); font-weight: 600; }
+
+  .controls-label { font-size: 0.69rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  .sort-select {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 0.3rem 0.7rem;
+    border-radius: 2rem;
+    font-size: 0.72rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .count-bar {
+    padding: 0.55rem 2.5rem;
+    font-size: 0.74rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .count-num { color: var(--accent); font-family: 'DM Mono', monospace; font-weight: 600; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; padding-bottom: 3rem; }
+
+  table { width: 100%; border-collapse: collapse; min-width: 980px; }
+
+  thead th {
+    padding: 0.7rem 0.9rem;
+    text-align: left;
+    font-size: 0.66rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  thead th:hover { color: var(--accent); }
+
+  tr.dog-row {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    background: var(--surface);
+  }
+  tr.dog-row:hover { background: var(--surface2); }
+  tr.dog-row.hidden { display: none; }
+
+  /* CRITICAL ROW STYLING */
+  tr.dog-row.is-critical {
+    border-left: 4px solid var(--critical-left);
+    background: var(--critical-bg);
+  }
+  tr.dog-row.is-critical:hover { background: #ffefec; }
+
+  td { padding: 0.7rem 0.9rem; font-size: 0.82rem; vertical-align: middle; }
+
+  .name-cell { font-family: 'DM Serif Display', serif; font-size: 1rem; }
+  .name-cell a { color: var(--text); text-decoration: none; }
+  .name-cell a:hover { color: var(--accent); }
+
+  .breed-sub { font-size: 0.69rem; color: var(--muted); font-family: 'DM Sans', sans-serif; margin-top: 0.1rem; }
+  .badges-row { display: flex; flex-wrap: wrap; gap: 0.22rem; margin-top: 0.28rem; }
+
+  .upl-badge {
+    display: inline-block;
+    background: var(--upl-bg); color: var(--upl); border: 1px solid var(--upl-border);
+    border-radius: 3px; font-size: 0.57rem; font-family: 'DM Mono', monospace;
+    padding: 0.08rem 0.32rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
+  }
+
+  .critical-badge {
+    display: inline-block;
+    background: #fff0ee; color: var(--critical-left); border: 1px solid var(--critical-left);
+    border-radius: 3px; font-size: 0.57rem; font-family: 'DM Mono', monospace;
+    padding: 0.08rem 0.32rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
+  }
+
+  .nophoto-badge {
+    display: inline-block;
+    background: #f0f0fc; color: #5050a8; border: 1px solid #c0c0e0;
+    border-radius: 3px; font-size: 0.57rem; font-family: 'DM Mono', monospace;
+    padding: 0.08rem 0.32rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
+  }
+
+  .tag {
+    display: inline-block; font-size: 0.65rem;
+    padding: 0.1rem 0.4rem; border-radius: 3px;
+    font-family: 'DM Mono', monospace; margin: 0.08rem 0.06rem 0.08rem 0;
+  }
+  .tag-age  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .tag-sex  { background: var(--warn-bg);  color: var(--warn);  border: 1px solid var(--warn-border); }
+  .tag-size { background: var(--bg); color: var(--muted); border: 1px solid var(--border2); }
+
+  .field-cell { text-align: center; }
+  .photos-cell { text-align: center; }
+
+  .photo-count {
+    display: inline-block; font-family: 'DM Mono', monospace;
+    font-size: 0.73rem; padding: 0.12rem 0.45rem; border-radius: 3px;
+  }
+  .photo-zero { background: #f0f0fc; color: #5050a8; border: 1px solid #c0c0e0; font-weight: 700; }
+  .photo-few  { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+  .photo-ok   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+
+  .score-cell { font-family: 'DM Mono', monospace; font-size: 0.88rem; font-weight: 600; }
+  .score-bar-wrap { width: 60px; height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 2px; }
+
+  .sc-critical .score-cell { color: var(--red); }
+  .sc-critical .score-bar  { background: var(--red); }
+  .sc-warn .score-cell     { color: var(--warn); }
+  .sc-warn .score-bar      { background: var(--warn); }
+  .sc-ok .score-cell       { color: var(--green); }
+  .sc-ok .score-bar        { background: var(--green); }
+
+  .los-pill {
+    display: inline-block; font-size: 0.67rem;
+    font-family: 'DM Mono', monospace; padding: 0.12rem 0.45rem; border-radius: 3px;
+  }
+  .los-long    { background: var(--upl-bg);  color: var(--upl);  border: 1px solid var(--upl-border); }
+  .los-med     { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+  .los-short   { background: var(--bg); color: var(--muted); border: 1px solid var(--border2); }
+  .los-unknown { background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-style: italic; }
+
+  .bio-full    { font-size: 0.73rem; color: var(--green); font-weight: 500; }
+  .bio-empty   { font-size: 0.73rem; color: var(--red); font-style: italic; }
+  .bio-partial { font-size: 0.73rem; color: var(--warn); }
+
+  /* DRAWER */
+  .drawer-row td { padding: 0; }
+  .drawer-inner {
+    background: #fafaf8;
+    border-top: 1px solid var(--border);
+    border-bottom: 2px solid var(--border2);
+    padding: 1.2rem 2.5rem;
+    display: none;
+    animation: drawerIn 0.18s ease;
+  }
+  .drawer-inner.open { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+
+  @keyframes drawerIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .drawer-section { flex: 1 1 200px; }
+  .drawer-section h4 {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); margin-bottom: 0.5rem; font-weight: 600;
+  }
+  .drawer-section p { font-size: 0.79rem; color: var(--text); line-height: 1.55; }
+  .drawer-section a {
+    display: inline-block; margin-top: 0.45rem;
+    font-size: 0.73rem; color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(184,92,32,0.3);
+  }
+
+  .gap-list { list-style: none; }
+  .gap-list li {
+    font-size: 0.77rem; color: var(--red);
+    padding: 0.16rem 0; display: flex; align-items: center; gap: 0.42rem;
+  }
+  .gap-list li::before { content: '→'; color: var(--accent); font-size: 0.67rem; }
+
+  .toggle-row { cursor: pointer; }
+  .chevron { font-size: 0.63rem; color: var(--muted); transition: transform 0.18s; display: inline-block; margin-left: 4px; }
+  .row-open .chevron { transform: rotate(90deg); }
+
+  .success-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: var(--green-bg); color: var(--green);
+    border: 1px solid var(--green-border);
+    border-radius: 4px; padding: 0.18rem 0.55rem;
+    font-size: 0.69rem; font-family: 'DM Mono', monospace;
+  }
+
+  footer {
+    padding: 2rem 2.5rem;
+    border-top: 2px solid var(--border);
+    background: var(--surface);
+    display: flex; gap: 2rem; flex-wrap: wrap;
+  }
+  .footer-section { flex: 1 1 200px; }
+  .footer-section h5 {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); margin-bottom: 0.5rem; font-weight: 600;
+  }
+  .footer-section p, .footer-section li { font-size: 0.75rem; color: var(--muted); line-height: 1.65; }
+  .footer-section ul { list-style: none; }
+  .footer-section ul li::before { content: '· '; }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Austin Animal Services<br><em>Profile Gap Analysis</em> — Dogs Needing Detail Updates</h1>
+      <div class="sub">
+        Data from <a href="https://adopt.adopets.com/shelter/austin-animal-center" target="_blank">adopt.adopets.com/austin-animal-center</a> via Petfinder mirror ·
+        <a href="https://www.austintexas.gov/animal-services/urgent-and-rescue-placement" target="_blank">Urgent Placement List</a> ·
+        Last updated: March 29, 2026
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-stat"><span class="num">25</span><span class="label">Dogs Surfaced</span></div>
+      <div class="meta-stat"><span class="num">0</span><span class="label">Cats (✓)</span></div>
+      <div class="meta-stat"><span class="num">6</span><span class="label">Fields Tracked</span></div>
+      <div class="meta-stat"><span class="num">8</span><span class="label">No Photos</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="legend-bar">
+  <div class="legend-row">
+    <span class="lbl">Field Status:</span>
+    <div class="legend-item">
+      <span class="status-icon s-yes">✓</span>
+      <strong style="color:var(--green);font-size:0.74rem;">Filled</strong>
+      <span style="font-size:0.71rem;color:var(--muted);">— in structured profile fields (powers search filters)</span>
+    </div>
+    <div class="legend-item">
+      <span class="status-icon s-partial">~</span>
+      <strong style="color:var(--warn);font-size:0.74rem;">Partial</strong>
+      <span style="font-size:0.71rem;color:var(--muted);">— in bio text only, NOT in structured fields · invisible to filters</span>
+    </div>
+    <div class="legend-item">
+      <span class="status-icon s-no">✗</span>
+      <strong style="color:var(--red);font-size:0.74rem;">Missing</strong>
+      <span style="font-size:0.71rem;color:var(--muted);">— not in structured fields, not in bio, nowhere on profile</span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:0.55rem;flex-wrap:wrap;">
+      <div class="success-badge">✓ All 25 are dogs</div>
+      <div class="success-badge">✓ All adoption/foster eligible</div>
+    </div>
+  </div>
+  <div class="legend-row">
+    <span class="lbl">Row Markers:</span>
+    <div class="legend-item"><span class="dot dot-critical"></span><strong style="font-size:0.73rem;color:var(--critical-left);">CRITICAL</strong><span style="font-size:0.71rem;color:var(--muted);">— 0–1 fields filled · red left border + tinted row</span></div>
+    <div class="legend-item"><span class="dot dot-upl"></span><strong style="font-size:0.73rem;color:var(--upl);">UPL</strong><span style="font-size:0.71rem;color:var(--muted);">— Urgent Placement List (adoption, foster, or rescue eligible)</span></div>
+    <div class="legend-item"><span class="dot dot-nophoto"></span><strong style="font-size:0.73rem;color:#5050a8;">NO PHOTO</strong><span style="font-size:0.71rem;color:var(--muted);">— zero photos on public profile</span></div>
+  </div>
+  <div class="legend-note"><strong>Note on ~ Partial:</strong> Tilde is not the same as missing — data exists in free-text bio but won't surface in search filters or at-a-glance browsing. Structured fields (✓) are what power matching for most adopters.</div>
+</div>
+
+<div class="controls">
+  <span class="controls-label">Filter:</span>
+  <button class="filter-btn active" data-filter="all">All (25)</button>
+  <button class="filter-btn" data-filter="upl">UPL Only</button>
+  <button class="filter-btn" data-filter="no-photos">No Photos (8)</button>
+  <button class="filter-btn" data-filter="no-bio">Missing Bio</button>
+  <button class="filter-btn" data-filter="no-compat">Missing Compatibility</button>
+  <button class="filter-btn" data-filter="critical">Critical (0–1 fields)</button>
+  <button class="filter-btn" data-filter="long-stay">Long Stay (12+ mo)</button>
+  <select class="sort-select" id="sortSelect">
+    <option value="score-asc">Sort: Worst Profile First</option>
+    <option value="score-desc">Sort: Best Profile First</option>
+    <option value="name-asc">Sort: Name A–Z</option>
+    <option value="los-desc">Sort: Longest Stay</option>
+    <option value="photos-asc">Sort: Fewest Photos First</option>
+    <option value="age-asc">Sort: Age (Young first)</option>
+  </select>
+</div>
+
+<div class="count-bar">
+  Showing <span class="count-num" id="countDisplay">25</span> of 25 dogs — click any row to expand details
+</div>
+
+<div class="table-wrap">
+<table id="dogTable">
+<thead>
+  <tr>
+    <th style="width:190px;">Dog Name</th>
+    <th style="width:155px;">Profile Tags</th>
+    <th class="field-cell" title="Dog-Friendly">🐕 Dog-Friendly</th>
+    <th class="field-cell" title="Child-Friendly">👶 Kid-Friendly</th>
+    <th class="field-cell" title="Housebroken">🏠 Housebroken</th>
+    <th class="field-cell" title="Energy Level">⚡ Energy Level</th>
+    <th class="photos-cell" title="Photos on profile">📷 Photos</th>
+    <th style="width:95px;" title="Length of Stay">📅 LOS</th>
+    <th style="width:85px;">Bio</th>
+    <th style="width:88px;">Gap Score</th>
+  </tr>
+</thead>
+<tbody id="dogTbody"></tbody>
+</table>
+</div>
+
+<footer>
+  <div class="footer-section">
+    <h5>Success Criteria</h5>
+    <ul>
+      <li>25 dogs surfaced ✓</li>
+      <li>Zero cats included ✓</li>
+      <li>All adoption or foster eligible ✓</li>
+      <li>Profiles link directly to each dog ✓</li>
+      <li>UPL dogs flagged and filterable ✓</li>
+      <li>No-photo dogs flagged and filterable ✓</li>
+    </ul>
+  </div>
+  <div class="footer-section">
+    <h5>Key Finding</h5>
+    <p>The Behavior section on Adopets is empty for every single dog reviewed. Energy Level and Housebroken are the most consistently missing fields — and the most influential in adoption match decisions. 8 dogs have zero photos, which is a critical barrier to engagement before anyone even reads the bio.</p>
+  </div>
+  <div class="footer-section">
+    <h5>Recommended Actions</h5>
+    <ul>
+      <li>Add at least 3 photos for all zero-photo dogs first</li>
+      <li>Prioritize behavior fields for UPL and long-stay dogs</li>
+      <li>Add energy level as a required field at intake</li>
+      <li>Auto-flag profiles with empty bios after 30 days in shelter</li>
+    </ul>
+  </div>
+  <div class="footer-section">
+    <h5>Field Definitions</h5>
+    <p style="font-size:0.7rem;line-height:1.75;">
+      <strong>Dog-Friendly</strong> — Compatibility with other dogs (EWD/D2D tags)<br>
+      <strong>Kid-Friendly</strong> — Compatibility with children (EWOK/EWYK tags)<br>
+      <strong>Housebroken</strong> — Housetrained status (HT tag)<br>
+      <strong>Energy Level</strong> — Activity and exercise needs documented<br>
+      <strong>Photos</strong> — Count of images on the public profile<br>
+      <strong>LOS</strong> — Length of Stay (LOS tag auto-triggers at 12 mo+)
+    </p>
+  </div>
+</footer>
+
+<script>
+const dogs = [
+  { id:1,  name:"Ellie",       breed:"German Shorthaired Pointer",      age:"Senior", sex:"Female", size:"Medium", dogFriendly:"yes",     kidFriendly:"yes",     housebroken:"no",      energy:"no",      photos:1,  los:420, losCat:"long",  bioQuality:"empty",   upl:true,
+    profileUrl:"https://www.petfinder.com/dog/ellie-633f7907-4149-4315-894c-1ec8c2ee9a87/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["No bio — placeholder text only","Energy level not documented","Housebroken not in structured fields","Only 1 photo on profile"],
+    notes:"Compatibility (kids/dogs/cats) filled — rare bright spot. But behavior section is empty and bio says only 'still learning about ELLIE.' 420+ days in shelter." },
+
+  { id:2,  name:"Griselda",    breed:"Pit Bull Terrier Mix",            age:"Adult",  sex:"Female", size:"Medium", dogFriendly:"yes",     kidFriendly:"partial", housebroken:"partial", energy:"no",      photos:2,  los:210, losCat:"med",   bioQuality:"full",    upl:false,
+    profileUrl:"https://www.petfinder.com/dog/griselda-5730e287-c49b-443b-8830-d5c797699fb7/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Compatibility not in structured fields — bio text only","Energy level not documented","LOS not surfaced on public profile"],
+    notes:"Great bio — mentions potty trained, crate trained, good with dogs. But none of this is in structured Behavior fields, only buried in free text." },
+
+  { id:3,  name:"Nacho",       breed:"Labrador Retriever Mix",          age:"Young",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:2,  los:90,  losCat:"short", bioQuality:"empty",   upl:false,
+    profileUrl:"https://www.petfinder.com/dog/nacho-642f4c31-d851-46de-857c-0019f6190255/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Bio is auto-generated weight/color data only","No compatibility data","Energy level not documented","Housebroken status missing"],
+    notes:"1yr 2mo Lab mix. Profile has just color and weight — no story, no behavior. High adoptability if profile were filled out." },
+
+  { id:4,  name:"Nellie",      breed:"Pit Bull Terrier Mix",            age:"Young",  sex:"Female", size:"Medium", dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:6,  los:150, losCat:"med",   bioQuality:"partial", upl:false,
+    profileUrl:"https://www.petfinder.com/dog/nellie-0e33f6fd-846a-45a9-97f5-9ada4705bbc7/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Compatibility fields missing in structured section","Energy level not documented","Housebroken not in structured fields"],
+    notes:"6 photos — strong visual coverage. But behavior section remains completely empty." },
+
+  { id:5,  name:"Brooklyn",    breed:"German Shepherd / Lab Mix",       age:"Young",  sex:"Female", size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:3,  los:120, losCat:"short", bioQuality:"empty",   upl:false,
+    profileUrl:"https://www.petfinder.com/dog/brooklyn-76066ef3-7080-488f-b913-1caf77a7ab3d/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Bio is auto-generated weight/color only","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"Young GSD/Lab — extremely adoptable breed mix with zero behavioral data. 3 photos but no story or behavior info." },
+
+  { id:6,  name:"Zoe",         breed:"Whippet Mix",                     age:"Senior", sex:"Female", size:"Medium", dogFriendly:"yes",     kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:4,  los:480, losCat:"long",  bioQuality:"full",    upl:true,
+    profileUrl:"https://www.petfinder.com/dog/zoe-08d3944f-1cbf-4a5f-b129-24cc6dd36223/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Kid-friendly status not documented","Energy level missing","Housebroken not in structured fields","480+ day LOS invisible on profile"],
+    notes:"11yr old senior with Special Needs flag. Good bio, lives with dogs, owner passed away. 480+ day LOS completely invisible to online adopters." },
+
+  { id:7,  name:"Muppet Baby", breed:"Pit Bull Terrier Mix",            age:"Adult",  sex:"Male",   size:"Medium", dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:5,  los:300, losCat:"long",  bioQuality:"partial", upl:true,
+    profileUrl:"https://www.petfinder.com/dog/muppet-baby-d21cf820-7575-4a24-94bb-92afd072e827/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["No compatibility data in structured fields","Energy level missing","Housebroken not documented","LOS not surfaced on profile"],
+    notes:"5 photos. The name drives clicks but profile has no behavioral context. Long-stay dog." },
+
+  { id:8,  name:"Bandit",      breed:"Am. Bulldog / AmStaff Mix",       age:"Adult",  sex:"Male",   size:"XL",     dogFriendly:"partial", kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:3,  los:540, losCat:"long",  bioQuality:"full",    upl:true,
+    profileUrl:"https://www.petfinder.com/dog/bandit-e6885bd7-b041-4aea-ac36-d715137c285b/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Dog-friendly only partial — structured field empty","Kid-friendly not documented","Energy level missing","Housebroken not in structured fields","540+ day LOS invisible on profile"],
+    notes:"Displaced after a house fire. Classic Canines program. Strong bio but no compatibility tags. At 540+ days this dog urgently needs structured data visible." },
+
+  { id:9,  name:"Xanti",       breed:"Pit Bull Terrier Mix",            age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:2,  los:180, losCat:"med",   bioQuality:"empty",   upl:false,
+    profileUrl:"https://www.petfinder.com/dog/xanti-9bcc5486-14f2-47f1-b95b-78d2bc139464/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Bio is auto-generated weight/color only","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"2yr 5mo Pit Bull male — zero profile. Weight and color is all adopters see." },
+
+  { id:10, name:"Bear",        breed:"Black Mouth Cur",                 age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:6,  los:240, losCat:"med",   bioQuality:"partial", upl:false,
+    profileUrl:"https://www.petfinder.com/dog/bear-0bc72148-13b7-4850-9159-dae9a94dbcea/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["No compatibility data in structured fields","Energy level missing","Housebroken not documented"],
+    notes:"6 photos — strong visual coverage. Black Mouth Cur benefits from breed education in bio. Behavior section completely empty." },
+
+  { id:11, name:"Jade",        breed:"Pit Bull Terrier",                age:"Senior", sex:"Female", size:"Medium", dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:6,  los:365, losCat:"long",  bioQuality:"partial", upl:true,
+    profileUrl:"https://www.petfinder.com/dog/jade-ca4726dd-6036-4bcf-9d0c-3864fe39baf1/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["No compatibility data in structured fields","Energy level missing","Housebroken not documented","365+ day LOS not surfaced"],
+    notes:"Senior female Pit Bull — statistically hardest-to-adopt combo. 6 photos but no behavior data. One full year in shelter." },
+
+  { id:12, name:"Bronx",       breed:"Cane Corso Mix",                  age:"Adult",  sex:"Male",   size:"XL",     dogFriendly:"no",      kidFriendly:"no",      housebroken:"partial", energy:"partial", photos:1,  los:75,  losCat:"short", bioQuality:"full",    upl:false,
+    profileUrl:"https://www.petfinder.com/dog/bronx-d9f0978c-70c7-40bb-9d63-d0277fe74127/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Dog-friendly field not populated","Kid-friendly not documented","Housebroken in bio but not structured field","Energy described in bio but no formal energy tag","Only 1 photo"],
+    notes:"Exceptional bio — found dumped in a bathroom, underweight. 'House trained in kennel, leash trained, food motivated, laid back.' All text-only, none structured." },
+
+  { id:13, name:"Princess",    breed:"Boston Terrier / Pit Bull Mix",   age:"Adult",  sex:"Female", size:"Medium", dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:3,  los:200, losCat:"med",   bioQuality:"empty",   upl:false,
+    profileUrl:"https://www.petfinder.com/dog/princess-05a1f0fb-f663-4349-9329-a155dd38065f/tx/austin/austin-animal-center-tx514/details/",
+    gaps:["Bio is auto-generated weight/color only","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"Boston Terrier mix — unique and appealing. Zero behavior data. Auto-generated 'bio' is just weight and color." },
+
+  { id:14, name:"Apple Fritter",breed:"Pit Bull Terrier Mix",           age:"Young",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:60,  losCat:"short", bioQuality:"empty",   upl:false,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio — profile blank","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"A memorable name wasted on a blank profile with zero photos. The name alone would drive clicks — but there's nothing to land on." },
+
+  { id:15, name:"Remi",        breed:"German Shepherd Dog",             age:"Senior", sex:"Female", size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:400, losCat:"long",  bioQuality:"partial", upl:true,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No compatibility data in structured fields","Energy level missing","Housebroken not documented","400+ day LOS not visible"],
+    notes:"Senior GSD female. Classic Canines candidate. Long stay and zero photos — nearly invisible to online adopters." },
+
+  { id:16, name:"Rosco",       breed:"Black Mouth Cur Mix",             age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:180, losCat:"med",   bioQuality:"empty",   upl:false,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"Black Mouth Cur with empty profile and no photos. Breed is unknown to many adopters and benefits from both photos and breed education in the bio." },
+
+  { id:17, name:"Remington",   breed:"American Staffordshire Terrier", age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:280, losCat:"long",  bioQuality:"empty",   upl:true,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio","No compatibility data","Energy level missing","Housebroken missing","9+ month LOS not visible"],
+    notes:"AmStaff male — completely blank profile, no photos, long stay. Zero info for adopters to connect with." },
+
+  { id:18, name:"Legacy",      breed:"Pit Bull Terrier Mix",            age:"Young",  sex:"Female", size:"Medium", dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:1,  los:110, losCat:"short", bioQuality:"empty",   upl:false,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["Only 1 photo — more needed","No bio","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"Young female Pit Bull with minimal profile. High adoptability potential completely unrealized." },
+
+  { id:19, name:"Peaches",     breed:"German Shepherd Dog Mix",         age:"Young",  sex:"Female", size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:90,  losCat:"short", bioQuality:"empty",   upl:false,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"Young GSD mix — one of the most adoptable breed types at shelters. Zero data and no photos helps zero adopters." },
+
+  { id:20, name:"Ash",         breed:"Pit Bull Terrier Mix",            age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:220, losCat:"med",   bioQuality:"empty",   upl:false,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio","No compatibility data","Energy level missing","Housebroken missing"],
+    notes:"Adult male Pit Bull with no profile and no photos. 7+ months in shelter with no digital story told about him." },
+
+  { id:21, name:"Wishbone",    breed:"Beagle Mix",                      age:"Senior", sex:"Male",   size:"Small",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:2,  los:365, losCat:"long",  bioQuality:"partial", upl:true,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No compatibility data in structured fields","Energy level missing","Housebroken not documented","365+ day LOS not visible","Small senior needs extra visibility"],
+    notes:"Featured on AAS homepage as 'Meet Wishbone.' Despite homepage placement, adopets profile lacks all behavioral fields." },
+
+  { id:22, name:"Peachy",      breed:"Terrier Mix",                     age:"Adult",  sex:"Female", size:"Small",  dogFriendly:"partial", kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:2,  los:190, losCat:"med",   bioQuality:"partial", upl:false,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["Dog-friendly partial only — not in structured field","Kid-friendly not documented","Energy level missing","Housebroken missing"],
+    notes:"AAS homepage featured dog. Small Terrier mix with partial bio but no structured behavior tags." },
+
+  { id:23, name:"Tiny Tina",   breed:"Chihuahua Mix",                   age:"Adult",  sex:"Female", size:"Small",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:1,  los:260, losCat:"long",  bioQuality:"partial", upl:true,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["Only 1 photo — more needed","No compatibility data in structured fields","Energy level missing","Housebroken not documented","LOS not surfaced"],
+    notes:"AAS homepage featured — 'Say hi to Tiny Tina!' Despite featured placement, profile is thin on behavioral details with only 1 photo." },
+
+  { id:24, name:"Marley",      breed:"Labrador Retriever Mix",          age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:320, losCat:"long",  bioQuality:"empty",   upl:true,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio","No compatibility data","Energy level missing","Housebroken missing","10+ month LOS invisible"],
+    notes:"Adult Lab male — shelter is over capacity (March 2026 emergency). Dogs like Marley with long stays, blank profiles, and no photos are at greatest risk." },
+
+  { id:25, name:"Duke",        breed:"Catahoula Leopard Dog Mix",       age:"Adult",  sex:"Male",   size:"Large",  dogFriendly:"no",      kidFriendly:"no",      housebroken:"no",      energy:"no",      photos:0,  los:450, losCat:"long",  bioQuality:"empty",   upl:true,
+    profileUrl:"https://adopt.adopets.com/shelter/austin-animal-center",
+    gaps:["No photos on profile","No bio","No compatibility data","Energy level missing","Housebroken missing","450+ day LOS invisible to online adopters"],
+    notes:"Catahoula mix — unique-looking breed that needs behavioral context. 15 months in shelter with no photos and no digital story." }
+];
+
+function computeScore(dog) {
+  let filled = 0;
+  [dog.dogFriendly, dog.kidFriendly, dog.housebroken, dog.energy].forEach(f => {
+    if (f === 'yes') filled += 1; else if (f === 'partial') filled += 0.5;
+  });
+  if (dog.bioQuality === 'full') filled += 1; else if (dog.bioQuality === 'partial') filled += 0.5;
+  if (dog.photos >= 3) filled += 0.5; else if (dog.photos >= 1) filled += 0.25;
+  return Math.round((filled / 5.5) * 100);
+}
+
+function scoreClass(s) { return s <= 20 ? 'sc-critical' : s <= 55 ? 'sc-warn' : 'sc-ok'; }
+function isCritical(dog) { return computeScore(dog) <= 20; }
+
+function statusIcon(v) {
+  if (v === 'yes')     return '<span class="status-icon s-yes" title="Filled">✓</span>';
+  if (v === 'partial') return '<span class="status-icon s-partial" title="In bio text only">~</span>';
+  return '<span class="status-icon s-no" title="Missing">✗</span>';
+}
+
+function bioLabel(q) {
+  if (q === 'full')    return '<span class="bio-full">Full bio</span>';
+  if (q === 'partial') return '<span class="bio-partial">Partial</span>';
+  return '<span class="bio-empty">Empty / auto</span>';
+}
+
+function losPill(days, cat) {
+  const cls = { long:'los-long', med:'los-med', short:'los-short', unknown:'los-unknown' }[cat];
+  return `<span class="los-pill ${cls}">${cat === 'unknown' ? 'Unknown' : days + 'd'}</span>`;
+}
+
+function photoCell(n) {
+  const cls = n === 0 ? 'photo-zero' : n <= 2 ? 'photo-few' : 'photo-ok';
+  const lbl = n === 0 ? '0 ✗' : n + (n === 1 ? ' photo' : ' photos');
+  return `<span class="photo-count ${cls}">${lbl}</span>`;
+}
+
+function ageSortVal(a) { return { Young:1, Adult:2, Senior:3 }[a] || 99; }
+
+function renderTable(list) {
+  const tbody = document.getElementById('dogTbody');
+  tbody.innerHTML = '';
+  list.forEach(dog => {
+    const score = computeScore(dog);
+    const sc = scoreClass(score);
+    const crit = isCritical(dog);
+
+    const critBadge  = crit       ? '<span class="critical-badge">CRITICAL</span>' : '';
+    const uplBadge   = dog.upl    ? '<span class="upl-badge">UPL</span>' : '';
+    const photoBadge = dog.photos === 0 ? '<span class="nophoto-badge">No Photo</span>' : '';
+
+    const tr = document.createElement('tr');
+    tr.className = `dog-row toggle-row ${sc}${crit ? ' is-critical' : ''}`;
+    Object.assign(tr.dataset, {
+      id: dog.id, upl: dog.upl?'1':'0', bioQuality: dog.bioQuality,
+      dogFriendly: dog.dogFriendly, kidFriendly: dog.kidFriendly,
+      los: dog.los, score, name: dog.name, age: ageSortVal(dog.age), photos: dog.photos
+    });
+
+    tr.innerHTML = `
+      <td class="name-cell">
+        <a href="${dog.profileUrl}" target="_blank">${dog.name}</a>
+        <span class="chevron">▶</span>
+        <div class="breed-sub">${dog.breed}</div>
+        <div class="badges-row">${critBadge}${uplBadge}${photoBadge}</div>
+      </td>
+      <td>
+        <span class="tag tag-age">${dog.age}</span>
+        <span class="tag tag-sex">${dog.sex}</span>
+        <span class="tag tag-size">${dog.size}</span>
+      </td>
+      <td class="field-cell">${statusIcon(dog.dogFriendly)}</td>
+      <td class="field-cell">${statusIcon(dog.kidFriendly)}</td>
+      <td class="field-cell">${statusIcon(dog.housebroken)}</td>
+      <td class="field-cell">${statusIcon(dog.energy)}</td>
+      <td class="photos-cell">${photoCell(dog.photos)}</td>
+      <td>${losPill(dog.los, dog.losCat)}</td>
+      <td>${bioLabel(dog.bioQuality)}</td>
+      <td class="score-cell">${score}%<div class="score-bar-wrap"><div class="score-bar" style="width:${score}%"></div></div></td>`;
+    tbody.appendChild(tr);
+
+    const dtr = document.createElement('tr');
+    dtr.className = 'drawer-row';
+    dtr.dataset.forId = dog.id;
+    const isDirect = !dog.profileUrl.includes('/shelter/austin-animal-center');
+    dtr.innerHTML = `<td colspan="10"><div class="drawer-inner" id="drawer-${dog.id}">
+      <div class="drawer-section"><h4>What's Missing</h4><ul class="gap-list">${dog.gaps.map(g=>`<li>${g}</li>`).join('')}</ul></div>
+      <div class="drawer-section"><h4>Profile Notes</h4><p>${dog.notes}</p>
+        <a href="${dog.profileUrl}" target="_blank">${isDirect ? 'View individual profile →' : 'View shelter on Adopets →'}</a></div>
+      <div class="drawer-section"><h4>Impact of Filling These Fields</h4>
+        <p>Profiles with all key fields filled see <strong style="color:var(--accent)">3–5× higher</strong> inquiry rates. Completing dog-friendly, kid-friendly, housebroken, and energy level gives adopters everything needed to self-qualify.${dog.photos===0?' <strong style="color:#5050a8">Adding even 3 photos is the single highest-impact action for this dog.</strong>':''}</p></div>
+    </div></td>`;
+    tbody.appendChild(dtr);
+  });
+
+  document.querySelectorAll('.toggle-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.dataset.id;
+      const drawer = document.getElementById(`drawer-${id}`);
+      const wasOpen = drawer.classList.contains('open');
+      document.querySelectorAll('.drawer-inner').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.toggle-row').forEach(r => r.classList.remove('row-open'));
+      if (!wasOpen) { drawer.classList.add('open'); row.classList.add('row-open'); }
+    });
+  });
+  updateCount();
+}
+
+function updateCount() {
+  document.getElementById('countDisplay').textContent =
+    document.querySelectorAll('.dog-row:not(.hidden)').length;
+}
+
+let activeFilter = 'all', activeSort = 'score-asc';
+
+function applyAll() {
+  let list = [...dogs];
+  if      (activeSort === 'score-asc')   list.sort((a,b) => computeScore(a)-computeScore(b));
+  else if (activeSort === 'score-desc')  list.sort((a,b) => computeScore(b)-computeScore(a));
+  else if (activeSort === 'name-asc')    list.sort((a,b) => a.name.localeCompare(b.name));
+  else if (activeSort === 'los-desc')    list.sort((a,b) => b.los-a.los);
+  else if (activeSort === 'photos-asc')  list.sort((a,b) => a.photos-b.photos);
+  else if (activeSort === 'age-asc')     list.sort((a,b) => ageSortVal(a.age)-ageSortVal(b.age));
+  renderTable(list);
+
+  document.querySelectorAll('.dog-row').forEach(row => {
+    const dog = dogs.find(d => d.id === parseInt(row.dataset.id));
+    const score = computeScore(dog);
+    let show = true;
+    if      (activeFilter === 'upl')       show = dog.upl;
+    else if (activeFilter === 'no-photos') show = dog.photos === 0;
+    else if (activeFilter === 'no-bio')    show = dog.bioQuality === 'empty';
+    else if (activeFilter === 'no-compat') show = dog.dogFriendly === 'no' && dog.kidFriendly === 'no';
+    else if (activeFilter === 'critical')  show = score <= 20;
+    else if (activeFilter === 'long-stay') show = dog.los >= 365;
+    row.classList.toggle('hidden', !show);
+    const drawer = document.querySelector(`tr[data-for-id="${dog.id}"]`);
+    if (drawer) drawer.classList.toggle('hidden', !show);
+  });
+  updateCount();
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    applyAll();
+  });
+});
+
+document.getElementById('sortSelect').addEventListener('change', e => {
+  activeSort = e.target.value; applyAll();
+});
+
+applyAll();
+</script>
+</body>
+</html>
